@@ -7,8 +7,7 @@ import (
 	"time"
 )
 
-// Strftime formats a time.Time according to the c's Strftime format
-func Strftime(t time.Time, format string) string {
+func StrTimeTokens(format string) []string {
 	var pieces []string
 	var block string
 
@@ -35,7 +34,13 @@ func Strftime(t time.Time, format string) string {
 		pieces = append(pieces, block)
 	}
 
-	// populate
+	return pieces
+}
+
+// Strftime formats a time.Time according to the c's Strftime format
+func Strftime(t time.Time, format string) string {
+	pieces := StrTimeTokens(format)
+
 	var output []string
 	for _, piece := range pieces {
 		switch piece {

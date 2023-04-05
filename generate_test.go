@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,12 +37,29 @@ func TestApplyDelta(t *testing.T) {
 func TestGenerate(t *testing.T) {
 	now := time.Now()
 
+	require.NoError(t, os.Setenv("TZ", "America/Toronto")) // UTC-4
+
+	currentLocation, err := time.LoadLocation("America/Toronto")
+	require.NoError(t, err)
+
 	tests := []struct {
 		expected time.Time
 		options  GenerateOptions
 	}{
 		{now.Truncate(time.Hour * 24), GenerateOptions{base: "now", truncate: "day"}},
 		{now.Truncate(time.Hour*24).AddDate(0, 0, 1), GenerateOptions{base: "tomorrow", truncate: "day"}},
+		{time.Date(2023, 4, 5, 0, 0, 0, 0, time.UTC), GenerateOptions{base: "2023-04-05T00:00:00Z", truncate: "day"}},
+		{time.Date(2023, 4, 5, 20, 0, 0, 0, currentLocation), GenerateOptions{base: "2023-04-05T23:00:00-04:00", truncate: "day"}},
+		{
+			time.Date(2023, 4, 5, 0, 0, 0, 0, time.UTC),
+			GenerateOptions{
+				options: Options{
+					utc:    true,
+					format: "%Y-%m-%d",
+				},
+				base: "2023-04-05",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -50,6 +69,7 @@ func TestGenerate(t *testing.T) {
 		actual := strings.Trim(buf.String(), "\n")
 
 		assert.NoError(t, err)
-		assert.Equal(t, strconv.Itoa(int(test.expected.Unix())), actual)
+		expectedUnix := strconv.Itoa(int(test.expected.Unix()))
+		assert.Equal(t, expectedUnix, actual)
 	}
 }
