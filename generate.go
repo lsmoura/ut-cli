@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/lsmoura/ut-cli/strftime"
 	"io"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,6 +42,39 @@ func applyDelta(t time.Time, delta string) (time.Time, error) {
 	}
 }
 
+// timeFormatFromPercent converts a time format string with percent values to a go time format string
+func timeFormatFromPercent(format string) string {
+	pieces := strftime.StrTimeTokens(format)
+
+	var goFormat string
+	for _, piece := range pieces {
+		switch piece {
+		case "%Y":
+			goFormat += "2006"
+		case "%m":
+			goFormat += "01"
+		case "%d":
+			goFormat += "02"
+		case "%H":
+			goFormat += "15"
+		case "%M":
+			goFormat += "04"
+		case "%S":
+			goFormat += "05"
+		case "%z":
+			goFormat += "Z07:00"
+		case "%Z":
+			goFormat += "MST"
+		case "%%":
+			goFormat += "%"
+		default:
+			goFormat += piece
+		}
+	}
+
+	return goFormat
+}
+
 func generate(w io.Writer, o GenerateOptions) error {
 	var now time.Time
 
@@ -51,7 +86,18 @@ func generate(w io.Writer, o GenerateOptions) error {
 	case "tomorrow":
 		now = time.Now().AddDate(0, 0, 1)
 	default:
-		return fmt.Errorf("unknown base: %s", o.base)
+		layout := o.options.format
+		if layout == "" {
+			layout = time.RFC3339
+		}
+		if strings.Contains(layout, "%") {
+			layout = timeFormatFromPercent(layout)
+		}
+		t, err := time.Parse(layout, o.base)
+		if err != nil {
+			return err
+		}
+		now = t
 	}
 
 	if now.IsZero() {
@@ -86,7 +132,21 @@ func generate(w io.Writer, o GenerateOptions) error {
 		return err
 	}
 
-	if _, err := fmt.Fprintf(w, "%d\n", now.Unix()); err != nil {
+	var n int64
+	switch o.options.precision {
+	case "millisecond", "ms":
+		n = now.UnixNano() / 1000000
+	case "microsecond", "us":
+		n = now.UnixNano() / 1000
+	case "nanosecond", "ns":
+		n = now.UnixNano()
+	case "second", "s", "":
+		n = now.Unix()
+	default:
+		return fmt.Errorf("unknown precision: %s", o.options.precision)
+	}
+
+	if _, err := fmt.Fprintf(w, "%d\n", n); err != nil {
 		return err
 	}
 
