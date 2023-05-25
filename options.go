@@ -1,9 +1,38 @@
 package main
 
 import (
+	"fmt"
 	"github.com/pborman/getopt/v2"
 	"os"
+	"time"
 )
+
+type TruncateOption string
+
+const (
+	TruncateOptionNone   TruncateOption = ""
+	TruncateOptionDay    TruncateOption = "day"
+	TruncateOptionHour   TruncateOption = "hour"
+	TruncateOptionMinute TruncateOption = "minute"
+	TruncateOptionSecond TruncateOption = "second"
+)
+
+func (opt TruncateOption) Truncate(t time.Time) (time.Time, error) {
+	switch opt {
+	case TruncateOptionDay:
+		return t.Truncate(time.Hour * 24), nil
+	case TruncateOptionHour:
+		return t.Truncate(time.Hour), nil
+	case TruncateOptionMinute:
+		return t.Truncate(time.Minute), nil
+	case TruncateOptionSecond:
+		return t.Truncate(time.Second), nil
+	case TruncateOptionNone:
+		return t, nil
+	}
+
+	return t, fmt.Errorf("unknown truncate option: %s", opt)
+}
 
 type Options struct {
 	utc       bool
@@ -112,7 +141,7 @@ type GenerateOptions struct {
 	baseOption     getopt.Option
 	delta          []string
 	deltaOption    getopt.Option
-	truncate       string
+	truncate       TruncateOption
 	truncateOption getopt.Option
 
 	flags *getopt.Set
