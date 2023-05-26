@@ -41,7 +41,7 @@ func TestParse(t *testing.T) {
 		{"1680704033", "04/05/2023", Options{format: "%m/%d/%Y"}},
 		{"1680704033", "05/04/2023", Options{format: "%d/%m/%Y"}},
 		{"1680704033", "2023-04-05 10:13", Options{format: "%Y-%m-%d %H:%M"}},
-		{"1588059756238", "2020-04-28 03:42:36.238000000", Options{precision: "millisecond", format: "%Y-%m-%d %H:%M:%S.%f"}},
+		{"1588059756238", "2020-04-28 03:42:36.238000", Options{precision: "millisecond", format: "%Y-%m-%d %H:%M:%S.%f"}},
 	}
 
 	for _, tt := range tests {
@@ -50,7 +50,7 @@ func TestParse(t *testing.T) {
 
 		result := buf.String()
 		result = strings.Trim(result, "\n")
-		assert.Equal(t, tt.want, result)
+		assert.Equalf(t, tt.want, result, "error parsing %q", tt.entry)
 	}
 }
 

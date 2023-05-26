@@ -29,3 +29,29 @@ func TestGenerateOptionsParseHelp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"help"}, remainingArgs)
 }
+
+func TestTruncateOption(t *testing.T) {
+	tests := []struct {
+		input     string
+		expected  TruncateOption
+		shouldErr bool
+	}{
+		{"", TruncateOptionNone, false},
+		{"second", TruncateOptionSecond, false},
+		{"minute", TruncateOptionMinute, false},
+		{"hour", TruncateOptionHour, false},
+		{"day", TruncateOptionDay, false},
+		{"foo", TruncateOptionNone, true},
+	}
+
+	for _, test := range tests {
+		var opt TruncateOption
+		err := opt.Set(test.input, nil)
+		if test.shouldErr {
+			assert.Errorf(t, err, "expected error for input %q", test.input)
+		} else {
+			assert.NoErrorf(t, err, "unexpected no error for input %q", test.input)
+			assert.Equalf(t, test.expected, opt, "unexpected value for input %q", test.input)
+		}
+	}
+}

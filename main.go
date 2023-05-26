@@ -7,13 +7,13 @@ import (
 
 var version = "dev"
 
-func handleHelp() {
+func handleHelp(binName string) {
 	options := Options{}
-	handleVersion()
+	handleVersion(binName)
 	fmt.Println("A command line tool to handle unix timestamp")
 	fmt.Println("")
 	fmt.Println("USAGE:")
-	fmt.Println("  ut [OPTIONS] <SUBCOMMAND> [EXTRA_OPTIONS]")
+	fmt.Printf("  %s [OPTIONS] <SUBCOMMAND> [EXTRA_OPTIONS]\n", binName)
 	fmt.Println("")
 
 	fmt.Println("OPTIONS:")
@@ -26,73 +26,77 @@ func handleHelp() {
 	fmt.Println("  parse      Parse a unix timestamp and print it in human readable format")
 }
 
-func handleGenerateHelp() {
+func handleGenerateHelp(binName string) {
 	options := GenerateOptions{}
-	handleVersion()
+	handleVersion(binName)
 	fmt.Println("Generate unix timestamp with given options")
 	fmt.Println("")
 	fmt.Println("USAGE:")
-	fmt.Println("  ut [GENERAL_OPTIONS] generate [OPTIONS]")
+	fmt.Printf("  %s [GENERAL_OPTIONS] generate [OPTIONS]\n", binName)
 	fmt.Println("")
 	fmt.Println("OPTIONS:")
 	options.Flags().PrintOptions(os.Stdout)
 }
 
-func handleVersion() {
-	fmt.Printf("ut %s\n", version)
+func handleVersion(binName string) {
+	fmt.Printf("%s %s\n", binName, version)
 }
 
-func main() {
+func run(runArgs ...string) error {
 	var options Options
 
-	args, err := options.Parse(os.Args...)
+	binName := os.Args[0]
+	args, err := options.Parse(runArgs...)
 	if err != nil {
-		fmt.Printf("%s: %s\n", os.Args[0], err)
-		os.Exit(1)
+		return fmt.Errorf("%s: %w", runArgs[0], err)
 	}
 
 	if options.help != nil && *options.help {
-		handleHelp()
-		os.Exit(0)
+		handleHelp(binName)
+		return nil
 	}
 
 	if options.version != nil && *options.version {
-		handleVersion()
-		os.Exit(0)
+		handleVersion(binName)
+		return nil
 	}
 
 	if len(args) == 0 {
-		fmt.Printf("%s: missing subcommand\n", os.Args[0])
-		os.Exit(1)
+		return fmt.Errorf("%s: missing subcommand", runArgs[0])
 	}
 
 	switch args[0] {
 	case "generate", "g":
 		generateOptions := GenerateOptions{options: options}
 		if remainingArgs, err := generateOptions.Parse(args...); err != nil {
-			fmt.Printf("%s: %s\n", os.Args[0], err)
-			os.Exit(1)
+			return fmt.Errorf("%s: %w", runArgs[0], err)
 		} else if len(remainingArgs) > 0 {
 			if remainingArgs[0] == "help" {
-				handleGenerateHelp()
-				os.Exit(0)
+				handleGenerateHelp(binName)
+				return nil
 			}
-			fmt.Printf("%s: unknown argument: %s\n", os.Args[0], remainingArgs[0])
-			os.Exit(1)
+			return fmt.Errorf("%s: unknown argument: %s", runArgs[0], remainingArgs[0])
 		}
 		if err := generate(os.Stdout, generateOptions); err != nil {
-			fmt.Printf("%s: %s\n", os.Args[0], err)
-			os.Exit(1)
+			return fmt.Errorf("%s: %w", runArgs[0], err)
 		}
 	case "parse", "p":
 		if err := parse(os.Stdout, args[1:], options); err != nil {
-			fmt.Printf("%s: %s\n", os.Args[0], err)
-			os.Exit(1)
+			return fmt.Errorf("%s: %w", runArgs[0], err)
 		}
 	case "help", "h":
-		handleHelp()
+		handleHelp(binName)
+		return nil
 	default:
-		fmt.Printf("%s: unknown subcommand: %s\n", os.Args[0], args[0])
+		return fmt.Errorf("%s: unknown subcommand: %s", runArgs[0], args[0])
+	}
+
+	return nil
+}
+
+func main() {
+	if err := run(os.Args...); err != nil {
+		fmt.Printf("%s: %s\n", os.Args[0], err)
 		os.Exit(1)
 	}
 }

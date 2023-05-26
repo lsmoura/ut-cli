@@ -75,7 +75,7 @@ func timeFormatFromPercent(format string) string {
 	return goFormat
 }
 
-func generate(w io.Writer, o GenerateOptions) error {
+func generate(w io.Writer, o GenerateOptions) (err error) {
 	var now time.Time
 
 	switch o.base {
@@ -104,30 +104,19 @@ func generate(w io.Writer, o GenerateOptions) error {
 		now = time.Now()
 	}
 
-	switch o.truncate {
-	case "day":
-		now = now.Truncate(time.Hour * 24)
-	case "hour":
-		now = now.Truncate(time.Hour)
-	case "minute":
-		now = now.Truncate(time.Minute)
-	case "second":
-		now = now.Truncate(time.Second)
-	case "":
-		// do nothing
-	default:
-		return fmt.Errorf("unknown truncate: %s", o.truncate)
+	now, err = o.truncate.Truncate(now)
+	if err != nil {
+		return err
 	}
 
 	for _, delta := range o.delta {
-		var err error
 		now, err = applyDelta(now, delta)
 		if err != nil {
 			return err
 		}
 	}
 
-	now, err := transform(now, o.options)
+	now, err = transform(now, o.options)
 	if err != nil {
 		return err
 	}
