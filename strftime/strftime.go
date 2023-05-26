@@ -15,6 +15,7 @@ func StrTimeTokens(format string) []string {
 		c := format[i]
 
 		if c == '%' {
+			extraN := 1
 			if len(block) > 0 {
 				pieces = append(pieces, block)
 				block = ""
@@ -23,8 +24,15 @@ func StrTimeTokens(format string) []string {
 				// malformed format string
 				break
 			}
-			pieces = append(pieces, format[i:i+2])
-			i++
+			if format[i+1] == '-' {
+				extraN++
+			}
+			if i == len(format)-extraN {
+				// malformed format string
+				break
+			}
+			pieces = append(pieces, format[i:i+extraN+1])
+			i += extraN
 		} else {
 			block += string(c)
 		}
@@ -102,8 +110,11 @@ func Strftime(t time.Time, format string) string {
 			_, offset := t.Zone()
 			output = append(output, fmt.Sprintf("%+03d%02d", offset/3600, (offset%3600)/60))
 		case "%Z": // Time zone name
-			_, offset := t.Zone()
-			output = append(output, fmt.Sprintf("%+03d:%02d", offset/3600, (offset%3600)/60))
+			name, offset := t.Zone()
+			if name == "" {
+				output = append(output, fmt.Sprintf("%+03d:%02d", offset/3600, (offset%3600)/60))
+			}
+			output = append(output, name)
 		case "%j": // Day of the year as a zero-padded decimal number
 			output = append(output, fmt.Sprintf("%03d", t.YearDay()))
 		case "%-j": // Day of the year as a decimal number

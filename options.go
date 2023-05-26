@@ -34,6 +34,21 @@ func (opt TruncateOption) Truncate(t time.Time) (time.Time, error) {
 	return t, fmt.Errorf("unknown truncate option: %s", opt)
 }
 
+func (opt *TruncateOption) Set(value string, _ getopt.Option) error {
+	switch v := TruncateOption(value); v {
+	case TruncateOptionNone, TruncateOptionDay, TruncateOptionHour, TruncateOptionMinute, TruncateOptionSecond:
+		*opt = v
+	default:
+		return fmt.Errorf("unknown truncate option: %s", value)
+	}
+
+	return nil
+}
+
+func (opt *TruncateOption) String() string {
+	return string(*opt)
+}
+
 type Options struct {
 	utc       bool
 	utcOption getopt.Option
